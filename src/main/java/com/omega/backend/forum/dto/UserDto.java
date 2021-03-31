@@ -1,26 +1,21 @@
 package com.omega.backend.forum.dto;
 
-import javax.validation.constraints.NotEmpty;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class UserDto {
 	
-	@NotEmpty(message = "Name should not be empty!")
-	private String username;
+	private Long id;
 	
-	@NotEmpty(message = "email should not be empty!")
+	private String userName;
+	
 	private String email;
 	
-	@NotEmpty(message = "Password should not be empty!")
-	private String password;
-	
-	@NotEmpty(message = "PasswordConfirmation should not be empty!")
-	private String passwordConfirmation;
-
-
 	
 }

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.omega.backend.forum.dto.TopicDto;
-import com.omega.backend.forum.dto.request.TopicPageRequest;
 import com.omega.backend.forum.dto.response.TopicPageResponse;
 import com.omega.backend.forum.dto.response.TopicResponse;
 import com.omega.backend.forum.model.service.TopicService;

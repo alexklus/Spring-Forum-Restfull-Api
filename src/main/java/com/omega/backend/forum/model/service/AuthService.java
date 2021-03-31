@@ -13,13 +13,12 @@ import com.omega.backend.forum.dto.request.LoginRequest;
 import com.omega.backend.forum.dto.request.RefreshTokenRequest;
 import com.omega.backend.forum.dto.request.RegisterRequest;
 import com.omega.backend.forum.dto.response.AuthenticationResponse;
+import com.omega.backend.forum.exception.BadRequestException;
 import com.omega.backend.forum.model.entity.User;
 import com.omega.backend.forum.repository.UserRepository;
 import com.omega.backend.forum.security.JwtProvider;
 
 import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -32,12 +31,21 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
 
     public void signup(RegisterRequest registerRequest) {
-        User user = new User();
-        user.setUserName(registerRequest.getUsername());
-        user.setEmail(registerRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setEnable(false);
-
+    	
+    	User testUser = userRepository.findByUserName(registerRequest.getUsername());
+		
+		if(testUser != null) throw new BadRequestException("Invalid username!");
+		
+		testUser = userRepository.findByEmail(registerRequest.getEmail());
+		
+		if(testUser != null) throw new BadRequestException("Invalid email!");
+        User user = User.builder().userId((long)0)
+				.email(registerRequest.getEmail()).userName(registerRequest.getUsername())
+				.password(passwordEncoder.encode(registerRequest.getPassword()))
+				.role("ROLE_USER")
+				.enable(true)
+				.build();
+        
         userRepository.save(user);
 
         
@@ -57,6 +65,7 @@ public class AuthService {
                 loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authenticate);
         String token = jwtProvider.generateToken(authenticate);
+        
         return AuthenticationResponse.builder().authenticationToken(token)
         		.refreshToken(refreshTokenService.generateRefreshToken().getToken())
         		.expiresAt(Instant.now()
@@ -68,8 +77,9 @@ public class AuthService {
 	public AuthenticationResponse refreshToken(RefreshTokenRequest refrashToken) {
 		refreshTokenService.validateRefreshToken(refrashToken.getRefreshToken());
 		String token = jwtProvider.generateTokenWithUserName(refrashToken.getUserName());
+		
 		return AuthenticationResponse.builder().authenticationToken(token)
-        		.refreshToken("").expiresAt(Instant.now()
+        		.refreshToken(refrashToken.getRefreshToken()).expiresAt(Instant.now()
         				.plusMillis(jwtProvider.getJwtExpirationInMillis()))
         				.username(refrashToken.getUserName())
         				.build();
