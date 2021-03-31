@@ -1,6 +1,8 @@
 package com.omega.backend.forum.model.service;
 
-import javax.servlet.UnavailableException;
+
+
+import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -11,16 +13,20 @@ import com.omega.backend.forum.dto.UserDto;
 import com.omega.backend.forum.dto.request.ChangePasswordRequest;
 import com.omega.backend.forum.dto.request.EditEmailRequest;
 import com.omega.backend.forum.dto.request.EditUserNameRequest;
+import com.omega.backend.forum.dto.request.ForgotPasswordRequest;
+import com.omega.backend.forum.dto.request.UploadFileRequest;
 import com.omega.backend.forum.exception.BadRequestException;
 import com.omega.backend.forum.exception.UnauthorizationException;
 import com.omega.backend.forum.model.entity.User;
 import com.omega.backend.forum.repository.UserRepository;
 
+import net.bytebuddy.utility.RandomString;
+
 
 
 @Service
 @Transactional
-public class ProfileEditService {
+public class ProfileService {
 	
 	@Autowired
 	private UserRepository userRepository;
@@ -29,7 +35,10 @@ public class ProfileEditService {
 	private AuthService authService;
 	
 	@Autowired
-	BCryptPasswordEncoder passwordEncoder;
+	private BCryptPasswordEncoder passwordEncoder;
+	
+	@Autowired
+	private MailService mailSrvice;
 	
 	public UserDto updateUsername(EditUserNameRequest editUserNameRequest) {
 		
@@ -94,5 +103,43 @@ public class ProfileEditService {
 		userRepository.save(user);
 		
 	}
+	
+	public String handleForgotPassword(ForgotPasswordRequest forgotPassword) {
+		
+		User user = userRepository.findByUserName(forgotPassword.getUserName());
+		
+		if(user == null) 
+			throw new BadRequestException("BAD CREDENTIALS!");
+		
+		if(!user.getEmail().equals(forgotPassword.getEmail())) 
+			throw new BadRequestException("BAD CREDENTIALS!");
+		
+		String password = RandomString.make(10);
+		
+		mailSrvice.sendEmail(user.getEmail(), password);
+		
+		user.setPassword(passwordEncoder.encode(password));
+		
+		userRepository.save(user);
+			
+		return "NEW PASSWORD SENDED TO YOUR EMAIL!";
+	}
+	
+	public String addAvatar(UploadFileRequest fileRequest) throws IOException {
+		
+		User user = userRepository.findByUserName(fileRequest.getUserName());
+		
+		if(!user.equals(authService.getCurrentUser()))
+			throw new UnauthorizationException("YOU HAVE NO PERMISSION TO UPLOAD FILE");
+		
+		user.setAvatar(fileRequest.getFile().getBytes());
+		
+		userRepository.save(user);
+		
+		return "FILE UPLOADED";
+		
+	}
+	
+	
 	
 }
