@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.omega.backend.forum.dto.CommentDto;
 import com.omega.backend.forum.dto.response.CommentResponse;
+import com.omega.backend.forum.dto.response.LikeResponse;
 import com.omega.backend.forum.model.service.CommentService;
 
 @RestController
@@ -40,12 +41,13 @@ public class CommentController {
 		
 	}
 	
-	@RequestMapping(value = "{id}", method = RequestMethod.PUT )
-	public ResponseEntity<String> editComment(@PathVariable("id") long commentId, @RequestBody CommentDto commentDto,
+	@RequestMapping(value = "{commentId}", method = RequestMethod.PUT )
+	public ResponseEntity<CommentResponse> editComment(@PathVariable("commentId") long commentId, @RequestBody CommentDto commentDto,
 			@PathVariable("topicId") long topicId) {
 		
 		commentService.edit(commentDto, commentId, topicId);
-		return ResponseEntity.status(HttpStatus.CREATED).body("Comment updated");
+		return ResponseEntity.status(HttpStatus.CREATED)
+				.body(commentService.edit(commentDto, commentId, topicId));
 	}
 	
 	@RequestMapping(value = "{commentId}", method = RequestMethod.DELETE )
@@ -57,5 +59,28 @@ public class CommentController {
 		return ResponseEntity.status(HttpStatus.CREATED).body("Comment deleated");
 		
 	}
+	
+	@RequestMapping(value = "{commentId}/like")
+	public ResponseEntity<LikeResponse> addLikeToComment(@PathVariable("commentId") long commentId,
+			@PathVariable("topicId") long topicId) {
+		
+		return ResponseEntity.status(HttpStatus.OK).body(commentService.like(commentId, topicId));
+	}
+	
+	@RequestMapping(value = "{commentId}/dislike")
+	public ResponseEntity<String> dislike(@PathVariable("commentId") long commentId,
+			@PathVariable("topicId") long topicId) {
+		
+		return ResponseEntity.status(HttpStatus.OK).body(commentService.dislike(commentId, topicId));
+	}
+	
+	@RequestMapping(value = "{commentId}", method = RequestMethod.GET )
+	public ResponseEntity<CommentResponse> getComment(@PathVariable("commentId") long commentId,
+			@PathVariable("topicId") long topicId) {
+		
+		return ResponseEntity.status(HttpStatus.CREATED).body(commentService.getComment(commentId, topicId));
+		
+	}
+	
 	
 }

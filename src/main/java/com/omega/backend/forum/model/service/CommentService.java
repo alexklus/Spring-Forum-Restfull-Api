@@ -3,17 +3,21 @@ package com.omega.backend.forum.model.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.omega.backend.forum.dto.CommentDto;
 import com.omega.backend.forum.dto.response.CommentResponse;
+import com.omega.backend.forum.dto.response.LikeResponse;
 import com.omega.backend.forum.exception.BadRequestException;
 import com.omega.backend.forum.exception.UnauthorizationException;
 import com.omega.backend.forum.model.entity.Comment;
+import com.omega.backend.forum.model.entity.Like;
 import com.omega.backend.forum.model.entity.Topic;
 import com.omega.backend.forum.model.entity.User;
 import com.omega.backend.forum.repository.CommentRepository;
+import com.omega.backend.forum.repository.LikeRepository;
 import com.omega.backend.forum.repository.TopicRepository;
 
 import lombok.AllArgsConstructor;
@@ -28,6 +32,8 @@ public class CommentService {
 	private AuthService authService;
 
 	private TopicRepository topicRepository;
+	
+	private LikeRepository likeRepository;
 
 	public CommentResponse save(CommentDto commentDto, Long topicId) {
 
@@ -38,6 +44,20 @@ public class CommentService {
 
 		return mapToCommentResponse(commentRepository.save(comment));
 
+	}
+	
+	public CommentResponse getComment(long commentId, long topicId) {
+		
+		Comment comment = commentRepository.findById(commentId)
+				.orElseThrow(() -> new BadRequestException("Comment Not exists!" + commentId));
+
+		Topic topic = topicRepository.findById(topicId)
+				.orElseThrow(() -> new BadRequestException("Topic not exist!" + topicId));
+
+		if (!comment.getTopic().getId().equals(topic.getId()))
+			throw new BadRequestException("Comment " + commentId + "Not releted to Topic " + topicId);
+		
+		return mapToCommentResponse(comment);
 	}
 
 	public Page<CommentResponse> getComments(long topicId, int page, int size) {
@@ -51,7 +71,7 @@ public class CommentService {
 
 	}
 
-	public Comment edit(CommentDto commentDto, long commentId, long topicId) {
+	public CommentResponse edit(CommentDto commentDto, long commentId, long topicId) {
 		Comment comment = commentRepository.findById(commentId)
 				.orElseThrow(() -> new BadRequestException("Comment Not exists!" + commentId));
 
@@ -64,7 +84,7 @@ public class CommentService {
 		if (comment.getUser().equals(authService.getCurrentUser())) {
 
 			comment.setText(commentDto.getContent());
-			return commentRepository.save(comment);
+			return mapToCommentResponse(commentRepository.save(comment));
 		
 		}
 
@@ -88,6 +108,62 @@ public class CommentService {
 		commentRepository.delete(comment);
 	}
 	
+	public LikeResponse like(long commentId, long topicId) {
+		
+		Comment comment = commentRepository.findById(commentId)
+				.orElseThrow(() -> new BadRequestException("Comment Not exists!" + commentId));
+
+		Topic topic = topicRepository.findById(topicId)
+				.orElseThrow(() -> new BadRequestException("Topic not exist!" + topicId));
+
+		if (!comment.getTopic().getId().equals(topic.getId()))
+			throw new BadRequestException("Comment " + commentId + "Not releted to Topic " + topicId);
+		
+		User currentUser = authService.getCurrentUser();
+		
+		comment.getLikes().forEach((like)->{
+			if(currentUser.equals(like.getUser())) {
+				throw new BadRequestException("You have all ready liked this comment!");
+			}
+		});
+		Like like = Like.builder().comment(comment).user(currentUser).build();
+		
+//		comment.addLike(like);
+		
+		likeRepository.save(like);
+		
+		
+		return mapToLikeResponse(like);
+		
+	}
+	
+	public String dislike(long commentId, long topicId) {
+		Comment comment = commentRepository.findById(commentId)
+				.orElseThrow(() -> new BadRequestException("Comment Not exists!" + commentId));
+
+		Topic topic = topicRepository.findById(topicId)
+				.orElseThrow(() -> new BadRequestException("Topic not exist!" + topicId));
+		
+		
+		if (!comment.getTopic().getId().equals(topic.getId()))
+			throw new BadRequestException("Comment " + commentId + "Not releted to Topic " + topicId);
+		
+		User currentUser = authService.getCurrentUser();
+		
+
+		for (Like like : comment.getLikes()) {
+
+			if (like.getUser().equals(currentUser)) {
+				comment.getLikes().remove(like);
+				likeRepository.delete(like);
+				return "dislike succeeded";
+			}
+		}
+		
+		throw new BadRequestException("Yous did not liked commnet yet");
+		
+	}
+	
 	//###################### TODO ADD WRAPER CLASS FOR MAPPING ENTITY TO DTO #########################
 
 	private Comment mapToComment(CommentDto commentDto, User user, Topic topic) {
@@ -96,7 +172,13 @@ public class CommentService {
 
 	private CommentResponse mapToCommentResponse(Comment comment) {
 		return CommentResponse.builder().id(comment.getId()).content(comment.getText())
-				.userName(comment.getUser().getUserName()).topicId(comment.getTopic().getId()).build();
+				.author(comment.getUser().getUserName())
+				.topicId(comment.getTopic().getId()).likes(comment.getLikes().size())
+				.build();
+	}
+	private LikeResponse mapToLikeResponse(Like like) {
+		return LikeResponse.builder().commentId(like.getComment()
+						.getId()).userName(like.getUser().getUserName()).build();
 	}
 
 }

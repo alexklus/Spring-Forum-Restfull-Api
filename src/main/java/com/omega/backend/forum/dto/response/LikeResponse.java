@@ -6,18 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class CommentResponse {
+public class LikeResponse {
 	
-	private Long id;
+	private Long commentId;
 	
-	private String content;
-	
-	private Long topicId;
-	
-	private String author;
-	
-	private int likes;
+	private String userName;
 }

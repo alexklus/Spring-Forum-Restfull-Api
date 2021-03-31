@@ -42,7 +42,7 @@ public class Comment {
 	@JoinColumn(name = "user_id",nullable = false, referencedColumnName = "user_id")
 	private User user;
 	
-	@OneToMany(mappedBy = "comment", fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "comment", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<Like> likes; 
 	
 	public void addLike(Like like) {
@@ -52,6 +52,5 @@ public class Comment {
 	
 	public void removeLike(Like like) {
 		likes.remove(like);
-		like.setComment(null);
 	}
 }

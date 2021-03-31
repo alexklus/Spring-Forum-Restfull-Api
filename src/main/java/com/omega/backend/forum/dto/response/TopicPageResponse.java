@@ -2,7 +2,6 @@ package com.omega.backend.forum.dto.response;
 
 import java.util.List;
 
-import com.omega.backend.forum.model.entity.Topic;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
